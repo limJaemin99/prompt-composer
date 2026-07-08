@@ -1,0 +1,128 @@
+/* M1 임시 스타일 — 정식 디자인은 M3에서 6.3 브리프 기준으로 구현 */
+
+:root {
+  /* 명세 6.3 방향: 옅은 웜그레이 배경, 진회색 잉크, 절제된 딥 틸 액센트 1색 */
+  --bg: #fafaf8;
+  --ink: #2a2a28;
+  --ink-soft: #6b6b66;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --line: #e4e4df;
+  --ok: #0f766e;
+  --fail: #b4442c;
+
+  /* 명세 4장: 외부 폰트 로드 금지, 시스템 폰트 스택 */
+  --font-body:
+    'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui,
+    sans-serif;
+  --font-code: Consolas, 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.sub {
+  color: var(--ink-soft);
+  margin: 0 0 32px;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.diag {
+  margin: 0;
+  padding-left: 20px;
+}
+
+code {
+  font-family: var(--font-code);
+  background: #f1f1ec;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+button {
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.fail {
+  color: var(--fail);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
