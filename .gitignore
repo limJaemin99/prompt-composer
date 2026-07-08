@@ -1,0 +1,16 @@
+# 의존성
+node_modules/
+
+# 빌드 산출물 (배포는 GitHub Releases에 index.html 첨부 방식)
+dist/
+
+# 로그·캐시
+*.log
+.vite/
+coverage/
+
+# 에디터·OS
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
