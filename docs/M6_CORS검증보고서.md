@@ -12,7 +12,7 @@
 | 제공사 | 엔드포인트 | 결과 | 판정 |
 |---|---|---|---|
 | **Anthropic** | `POST api.anthropic.com/v1/messages` + `anthropic-dangerous-direct-browser-access: true` | **401 도달** — `authentication_error: invalid x-api-key` 본문 수신 | ✅ **호출 가능** (유효 키만 있으면 동작) |
-| **Google** | `POST generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent` | **400 도달** — `API key not valid` 본문 수신 | ✅ **호출 가능** |
+| **Google** | `POST generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent` + `x-goog-api-key` 헤더 | **400 도달** — `API key not valid` 본문 수신 (2026-07-09 헤더 방식·현행 모델로 재실측) | ✅ **호출 가능** |
 | **OpenAI** | `POST api.openai.com/v1/chat/completions` | `TypeError: Failed to fetch` | ❌ **CORS 차단** |
 
 ## 결정 (명세 §9 정책 적용)
@@ -31,7 +31,7 @@
 | 제공사 | 모델 ID | 근거 |
 |---|---|---|
 | Anthropic | `claude-haiku-4-5` | 공식 카탈로그 기준 최소 비용 티어($1/$5 per MTok), haiku 계열 최신. alias 사용(날짜 suffix 금지) |
-| Google | `gemini-2.0-flash` | flash 계열(저비용 티어). 실측에서 엔드포인트 경로 유효성 확인 |
+| Google | `gemini-3.1-flash-lite` | 현행 세대 최소 비용 Flash-Lite (공식 카탈로그 2026-07-09 확인). **이력**: 최초 `gemini-2.0-flash`로 구현했으나 공식 카탈로그에서 deprecated("will be shut down soon") 확인 — 신규 무료 키에서 `429 RESOURCE_EXHAUSTED, limit: 0`(할당량 0)이 발생하는 원인이었음(실사용 보고). 현행 모델로 갱신 + 헤더 인증(`x-goog-api-key`)으로 변경(URL 쿼리 `?key=`는 실패 로그에 키가 노출됨) |
 
 ## 참고
 

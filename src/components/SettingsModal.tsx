@@ -97,7 +97,7 @@ export default function SettingsModal({ open, onClose, onToast }: Props) {
           <input
             id="key-google"
             type="password"
-            placeholder="AIza…"
+            placeholder="발급받은 키를 그대로 붙여넣으세요 (AIza…, AQ.… 모두 가능)"
             value={googleKey}
             onChange={(e) => setGoogleKey(e.target.value)}
           />

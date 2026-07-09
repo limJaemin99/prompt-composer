@@ -14,10 +14,14 @@ const KEYS: Record<Provider, string> = {
   google: 'pg.byok.google',
 };
 
-/** §9: 각사 최소 비용 모델 (구현 시점 공식 문서 확인 — CORS 보고서 참조) */
+/**
+ * §9: 각사 최소 비용 모델 (구현 시점 공식 문서 확인 — CORS 보고서 참조)
+ * google: gemini-2.0-flash는 2026-07 공식 카탈로그에서 deprecated(신규 무료 키 quota 0) —
+ * 현행 세대 최소 비용 Flash-Lite로 갱신 (2026-07-09 재확인)
+ */
 const MODELS: Record<Provider, string> = {
   anthropic: 'claude-haiku-4-5',
-  google: 'gemini-2.0-flash',
+  google: 'gemini-3.1-flash-lite',
 };
 
 /** §9 정제 요청 시스템 프롬프트 문면 그대로 */
@@ -85,11 +89,15 @@ export async function refinePrompt(provider: Provider, promptText: string): Prom
             }),
           })
         : await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.google}:generateContent?key=${encodeURIComponent(apiKey)}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.google}:generateContent`,
             {
               method: 'POST',
               signal: controller.signal,
-              headers: { 'content-type': 'application/json' },
+              headers: {
+                'content-type': 'application/json',
+                // 키는 URL이 아닌 헤더로 — 실패 로그·히스토리에 키가 노출되지 않게 (2026-07-09)
+                'x-goog-api-key': apiKey,
+              },
               body: JSON.stringify({
                 system_instruction: { parts: [{ text: REFINE_SYSTEM }] },
                 contents: [{ role: 'user', parts: [{ text: promptText }] }],
@@ -97,7 +105,10 @@ export async function refinePrompt(provider: Provider, promptText: string): Prom
             },
           );
 
-    if (!res.ok) return { ok: false, error: errorMessage(res.status) };
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      return { ok: false, error: errorMessage(res.status, bodyText) };
+    }
 
     const data: unknown = await res.json();
     const text = extractText(provider, data);
@@ -115,11 +126,21 @@ export async function refinePrompt(provider: Provider, promptText: string): Prom
   }
 }
 
-function errorMessage(status: number): string {
+/**
+ * 상태코드 + 응답 본문 → 원인과 다음 행동을 담은 사용자 문구 (§6.2).
+ * 429는 두 갈래로 구분한다: 할당량 자체가 0(키 등급에서 모델 미지원 — 기다려도 소용없음)
+ * vs 일시적 빈도 제한(잠시 후 재시도). 테스트를 위해 export.
+ */
+export function errorMessage(status: number, bodyText = ''): string {
   if (status === 401 || status === 403) {
     return 'API 키가 올바르지 않아요. 설정에서 키를 다시 확인해 주세요.';
   }
   if (status === 429) {
+    // Google RESOURCE_EXHAUSTED에 "limit: 0"이 오면 이 키 등급에서 모델 할당량이 없는 것 —
+    // 재시도해도 해결되지 않으므로 별도 안내 (2026-07-09 실사용 보고 반영)
+    if (/limit:\s*0\b/.test(bodyText)) {
+      return '지금 키 등급에서는 이 모델을 쓸 수 없어요(할당량 0). 발급 콘솔에서 키 등급과 모델 사용 가능 여부를 확인해 주세요.';
+    }
     return '요청이 너무 잦아 잠시 제한됐어요. 1분 정도 후에 다시 시도해 주세요.';
   }
   if (status >= 500) {
