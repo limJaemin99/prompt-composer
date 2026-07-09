@@ -245,6 +245,19 @@ button.type-card:hover {
   color: var(--soft);
   margin: 0;
 }
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.check-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 
 .options-acc {
   border-top: 1px solid var(--line);

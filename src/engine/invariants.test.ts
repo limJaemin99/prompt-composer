@@ -1,10 +1,11 @@
 /**
- * 전역 불변식 테스트 (§10.1) — M2 범위: email·free × 3플레이버 × 3상세도 = 18조합.
- * M4에서 나머지 7유형이 추가되면 이 배열에 유형과 fixture만 늘리면 81조합이 된다.
+ * 전역 불변식 테스트 (§10.1) — 9유형 × 3플레이버 × 3상세도 = 81조합 스모크.
+ * 각 유형의 fixture는 §10.2 골든 입력을 겸한다.
  */
 import { describe, it, expect } from 'vitest';
 import type { DetailLevel, Flavor, TaskTemplate } from './types';
 import { buildSpec, renderAI, renderHuman } from './render';
+import { TEMPLATES } from '../templates';
 import { emailTemplate } from '../templates/email';
 import { freeTemplate } from '../templates/free';
 import { SELFCHECK } from '../templates/common';
@@ -20,6 +21,7 @@ interface SmokeCase {
   roleField?: string;
 }
 
+/** §10.1: 9유형 × 3플레이버 × 3상세도 = 81조합 스모크의 유형별 입력 */
 const CASES: SmokeCase[] = [
   {
     template: emailTemplate,
@@ -31,6 +33,80 @@ const CASES: SmokeCase[] = [
       tone: '정중하고 격식 있게',
       mustInclude: '일정 변경에 대한 사과 한 줄',
       length: '보통',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'report')!,
+    values: {
+      docType: '업무 보고서',
+      topic: '3분기 고객 문의 응대 현황',
+      content: '문의 건수 1,240건으로 전분기 대비 8% 증가\n주요 원인은 신제품 출시 문의\n응대 만족도 4.2점 유지',
+      audience: '팀장님 보고용',
+      style: '개조식',
+      length: '1페이지',
+      structure: '개요 → 현황 → 문제점 → 개선안',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'summarize')!,
+    values: {
+      source: '금일 회의에서 3분기 목표를 확정했다.\n영업팀은 신규 고객 30곳 확보를 맡는다.\n마감 기한은 9월 30일이며 담당자는 박지현이다.',
+      use: '상사 보고용',
+      format: '핵심 불릿',
+      amount: '불릿 5~7개',
+      mustKeep: '날짜와 담당자 이름은 반드시 유지',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'translate')!,
+    values: {
+      mode: '한국어 → 영어 번역',
+      source: '안녕하세요, 김 과장님.\n지난주 요청하신 견적서를 첨부해 드립니다.\n검토 후 의견 부탁드립니다.',
+      context: '비즈니스 이메일',
+      glossary: "'수협은행'은 'Sh Suhyup Bank'로 표기",
+      explain: 'true',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'brainstorm')!,
+    values: {
+      topic: '신입사원 온보딩 개선 방안',
+      background: '예산 거의 없음, 대상은 20명 규모 팀',
+      count: '10개',
+      direction: '균형 있게',
+      withEval: 'true',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'data')!,
+    values: {
+      goal: '수식·함수 만들기',
+      dataDesc: 'A열 날짜, B열 지점명, C열 매출액\n약 1,000행 규모\n2026년 1월부터 누적',
+      want: '지점별 월 매출 합계를 구하고 싶어요',
+      tool: 'Excel',
+      level: '초급 — 자세한 설명 필요',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'image')!,
+    values: {
+      subject: '노란 옷을 입고 산책하는 흰색 강아지',
+      style: '깔끔한 일러스트',
+      scene: '공원 배경, 전신이 보이게',
+      mood: '밝고 따뜻한 파스텔톤',
+      usage: '발표자료용',
+      avoid: '이미지 안에 글자 넣지 말 것',
+    },
+  },
+  {
+    template: TEMPLATES.find((t) => t.id === 'code')!,
+    values: {
+      kind: '에러 해결',
+      env: 'Python 3.11',
+      want: '엑셀 파일을 읽을 때 인코딩 오류가 발생합니다',
+      code: 'df = pd.read_csv("sales.csv")\nUnicodeDecodeError: utf-8 codec\ncannot decode byte 0xb0 in position 2',
+      constraints: '외부 라이브러리 없이',
+      explainLevel: '핵심 설명 포함',
     },
   },
   {
@@ -52,8 +128,10 @@ describe.each(CASES)('불변식 — $template.id', ({ template, values, roleFiel
       const a = renderAI(spec, flavor, detail);
       const b = renderHuman(spec, detail);
 
-      it('1. verbatim — 입력된 모든 값이 A·B에 원문 그대로 존재', () => {
-        for (const [, value] of Object.entries(values)) {
+      it('1. verbatim — 입력된 모든 값이 A·B에 원문 그대로 존재 (checkbox 제외)', () => {
+        for (const f of template.fields) {
+          const value = values[f.key];
+          if (!value || f.widget === 'checkbox') continue; // checkbox 'true'는 사용자 문장이 아님
           expect(a).toContain(value);
           expect(b).toContain(value);
         }
@@ -72,7 +150,10 @@ describe.each(CASES)('불변식 — $template.id', ({ template, values, roleFiel
         // 값이 있거나 defaultValue가 있는 필드, 단 roleFromField는 표준 이상에서 role로 승격되어 제외
         const promoted = detail !== 'simple' && roleField && values[roleField];
         const expectedFields = template.fields.filter(
-          (f) => (values[f.key] ?? f.defaultValue) && !(promoted && f.key === roleField),
+          (f) =>
+            f.widget !== 'checkbox' &&
+            (values[f.key] ?? f.defaultValue) &&
+            !(promoted && f.key === roleField),
         );
         for (const f of expectedFields) {
           const aPrefix = flavor === 'claude' ? `- ${f.label.en}:` : `**${f.label.en}:**`;

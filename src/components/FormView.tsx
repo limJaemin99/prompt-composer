@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { DetailLevel, FieldDef, TaskTemplate } from '../engine/types';
+import { isFieldVisible } from '../engine/visibility';
 
 interface Props {
   template: TaskTemplate;
@@ -54,9 +55,6 @@ export default function FormView({ template, initialValues, initialDetail, onBac
   const [detail, setDetail] = useState<DetailLevel>(initialDetail);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
-  const requiredFields = template.fields.filter((f) => f.required);
-  const optionalFields = template.fields.filter((f) => !f.required);
-
   /** 실효값: select 커스텀은 보조 입력의 트림값, 그 외는 트림값 (수집 시 1회 트림) */
   const effective = (f: FieldDef): string => {
     const raw = values[f.key];
@@ -67,6 +65,17 @@ export default function FormView({ template, initialValues, initialDetail, onBac
     return (raw ?? '').trim();
   };
 
+  /** showIf 평가용 실효값 맵 */
+  const effectiveMap = (): Record<string, string> => {
+    const m: Record<string, string> = {};
+    for (const f of template.fields) m[f.key] = effective(f);
+    return m;
+  };
+
+  const visMap = effectiveMap();
+  const requiredFields = template.fields.filter((f) => f.required && isFieldVisible(f, visMap));
+  const optionalFields = template.fields.filter((f) => !f.required && isFieldVisible(f, visMap));
+
   const missing = useMemo(
     () => requiredFields.filter((f) => effective(f) === ''),
     // eslint 없음 — values 변경 시 재계산
@@ -76,7 +85,9 @@ export default function FormView({ template, initialValues, initialDetail, onBac
   const submit = () => {
     if (missing.length > 0) return;
     const out: Record<string, string> = {};
+    const vis = effectiveMap();
     for (const f of template.fields) {
+      if (!isFieldVisible(f, vis)) continue; // 숨김 필드의 잔존값은 제출하지 않는다
       const v = effective(f);
       if (v !== '') out[f.key] = v;
     }
@@ -110,6 +121,18 @@ export default function FormView({ template, initialValues, initialDetail, onBac
           value={values[f.key] ?? ''}
           onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
         />
+      )}
+
+      {f.widget === 'checkbox' && (
+        <label className="check-row">
+          <input
+            id={`f-${f.key}`}
+            type="checkbox"
+            checked={values[f.key] === 'true'}
+            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.checked ? 'true' : '' }))}
+          />
+          <span>{f.hint ?? f.label.ko}</span>
+        </label>
       )}
 
       {f.widget === 'select' && (
