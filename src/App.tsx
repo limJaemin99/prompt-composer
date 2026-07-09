@@ -1,103 +1,90 @@
-import { useMemo, useState } from 'react';
-import { copyText, type CopyResult } from './lib/clipboard';
-import { downloadTextFile, formatTimestamp } from './lib/download';
+import { useCallback, useRef, useState } from 'react';
+import type { DetailLevel } from './engine/types';
+import { getTemplate } from './templates';
+import Home from './components/Home';
+import FormView from './components/FormView';
+import ResultView from './components/ResultView';
+import SettingsModal from './components/SettingsModal';
+import { loadLastDetail, saveLastDetail } from './lib/storage';
 
-/**
- * M1 임시 검증 화면.
- * 목적: file:// 더블클릭 환경에서 ① 클립보드 복사(+폴백) ② UTF-8 BOM .txt 다운로드가
- * 실제로 동작하는지 검증한다. 정식 UI는 M3에서 별도 구현한다.
- */
+type ViewName = 'home' | 'form' | 'result';
 
-const SAMPLE_TEXT = `프롬프트 생성기 M1 파이프라인 검증용 샘플입니다.
-한글, English, 숫자 123, 기호 <>&"' 모두 포함.
-이 텍스트가 복사·다운로드 후에도 그대로면 성공입니다.`;
-
-interface EnvInfo {
-  protocol: string;
-  secureContext: boolean;
-  clipboardApi: boolean;
-  execCommand: boolean;
+interface ToastState {
+  message: string;
+  ok: boolean;
 }
 
-function readEnv(): EnvInfo {
-  return {
-    protocol: window.location.protocol,
-    secureContext: window.isSecureContext,
-    clipboardApi: !!navigator.clipboard?.writeText,
-    execCommand: typeof document.execCommand === 'function',
-  };
-}
-
+/** SPA — 라우터 없이 view state 3개 + 설정 모달 (§6.1) */
 export default function App() {
-  const env = useMemo(readEnv, []);
-  const [text, setText] = useState(SAMPLE_TEXT);
-  const [copyResult, setCopyResult] = useState<CopyResult | null>(null);
-  const [downloaded, setDownloaded] = useState<string | null>(null);
+  const [view, setView] = useState<ViewName>('home');
+  const [templateId, setTemplateId] = useState<string>('');
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [detail, setDetail] = useState<DetailLevel>(loadLastDetail());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleCopy = async () => {
-    setCopyResult(await copyText(text));
-  };
+  const showToast = useCallback((message: string, ok: boolean) => {
+    setToast({ message, ok });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }, []);
 
-  const handleDownload = () => {
-    const filename = `검증샘플_${formatTimestamp(new Date())}.txt`;
-    downloadTextFile(filename, text);
-    setDownloaded(filename);
-  };
+  const template = getTemplate(templateId);
 
   return (
-    <main className="wrap">
-      <h1>프롬프트 생성기</h1>
-      <p className="sub">M1 파이프라인 검증 화면 — 정식 화면은 M3에서 만들어집니다.</p>
+    <div className="app">
+      <button
+        className="gear"
+        aria-label="설정 열기"
+        onClick={() => setSettingsOpen(true)}
+      >
+        ⚙
+      </button>
 
-      <section className="panel">
-        <h2>실행 환경 진단</h2>
-        <ul className="diag">
-          <li>
-            프로토콜: <code>{env.protocol}</code>
-          </li>
-          <li>
-            보안 컨텍스트(isSecureContext): <code>{String(env.secureContext)}</code>
-          </li>
-          <li>
-            클립보드 API 사용 가능: <code>{String(env.clipboardApi)}</code>
-          </li>
-          <li>
-            execCommand 폴백 사용 가능: <code>{String(env.execCommand)}</code>
-          </li>
-        </ul>
-      </section>
-
-      <section className="panel">
-        <h2>검증용 텍스트</h2>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={5}
-          aria-label="검증용 텍스트"
+      {view === 'home' && (
+        <Home
+          onSelect={(id) => {
+            setTemplateId(id);
+            setValues({}); // 새 작업 시작 — 폼 입력은 저장하지 않는다(명세 4장)
+            setView('form');
+          }}
         />
-        <div className="actions">
-          <button type="button" className="primary" onClick={handleCopy}>
-            프롬프트 복사
-          </button>
-          <button type="button" onClick={handleDownload}>
-            .txt 다운로드
-          </button>
-        </div>
+      )}
 
-        {copyResult && (
-          <p className={copyResult.ok ? 'ok' : 'fail'} role="status">
-            {copyResult.ok
-              ? `복사됐어요. (방법: ${copyResult.method}) 메모장에 붙여넣어 확인해 보세요.`
-              : `복사에 실패했어요. (마지막 시도: ${copyResult.method ?? '없음'}) ${copyResult.error ?? ''}`}
-          </p>
-        )}
-        {downloaded && (
-          <p className="ok" role="status">
-            <code>{downloaded}</code> 파일을 내려받았어요. 메모장으로 열어 한글이 깨지지 않는지 확인해
-            보세요.
-          </p>
-        )}
-      </section>
-    </main>
+      {view === 'form' && template && (
+        <FormView
+          template={template}
+          initialValues={values}
+          initialDetail={detail}
+          onBack={() => setView('home')}
+          onSubmit={(v, d) => {
+            setValues(v);
+            setDetail(d);
+            saveLastDetail(d); // 폼에서 고른 상세도도 "마지막 사용"으로 기억 (§4)
+            setView('result');
+          }}
+        />
+      )}
+
+      {view === 'result' && template && (
+        <ResultView
+          template={template}
+          values={values}
+          initialDetail={detail}
+          onEdit={() => setView('form')} // 입력값 유지한 채 폼 복귀 (§6.1)
+          onToast={showToast}
+        />
+      )}
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {toast && (
+        <div className={toast.ok ? 'toast show' : 'toast show fail'} role="status">
+          <span className="toast-mark">{toast.ok ? '✓' : '!'}</span>
+          {toast.message}
+        </div>
+      )}
+    </div>
   );
 }

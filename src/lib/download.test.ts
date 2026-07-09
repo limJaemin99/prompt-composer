@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { UTF8_BOM, sanitizeFilename, formatTimestamp } from './download';
+import {
+  UTF8_BOM,
+  sanitizeFilename,
+  formatTimestamp,
+  buildPromptFilename,
+  buildSummaryFilename,
+  buildSummaryHeader,
+} from './download';
 
 describe('sanitizeFilename', () => {
   it('금지 문자 9종(\\ / : * ? " < > |)을 전부 _로 치환한다', () => {
@@ -16,6 +23,32 @@ describe('sanitizeFilename', () => {
 describe('formatTimestamp', () => {
   it('YYYYMMDD_HHmm 패턴으로 만든다 (명세 6.1 파일명 규칙)', () => {
     expect(formatTimestamp(new Date(2026, 6, 8, 9, 5))).toBe('20260708_0905');
+  });
+});
+
+describe('다운로드 파일명 (명세 6.1)', () => {
+  const d = new Date(2026, 6, 9, 14, 30);
+
+  it('A: 프롬프트_{유형}_{YYYYMMDD_HHmm}.txt 패턴', () => {
+    expect(buildPromptFilename('이메일·메시지 작성', d)).toBe(
+      '프롬프트_이메일·메시지 작성_20260709_1430.txt',
+    );
+  });
+
+  it('B: 프롬프트요약_{유형}_{YYYYMMDD_HHmm}.txt 패턴', () => {
+    expect(buildSummaryFilename('자유 입력', d)).toBe('프롬프트요약_자유 입력_20260709_1430.txt');
+  });
+
+  it('유형 이름에 금지 문자가 있으면 _로 치환된다', () => {
+    expect(buildPromptFilename('한/영 번역', d)).toBe('프롬프트_한_영 번역_20260709_1430.txt');
+  });
+
+  it('B 헤더: 생성 도구/일시/유형 2줄', () => {
+    const header = buildSummaryHeader('이메일·메시지 작성', d);
+    expect(header.split('\n')).toHaveLength(2);
+    expect(header).toBe(
+      '생성 도구: 프롬프트 생성기\n생성 일시: 2026-07-09 14:30 · 유형: 이메일·메시지 작성',
+    );
   });
 });
 
