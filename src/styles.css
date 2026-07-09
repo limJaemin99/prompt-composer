@@ -418,6 +418,7 @@ button.type-card:hover {
 }
 .b-list li {
   margin: 1px 0;
+  white-space: pre-wrap; /* 여러 줄 값(2줄 등 비펜스)의 개행 보존 — B는 눈으로 검증하는 영역 */
 }
 .b-fence {
   font-family: var(--font-body);
@@ -507,6 +508,199 @@ button.type-card:hover {
   display: flex;
   gap: 8px;
   margin-top: 16px;
+}
+
+/* ── 내 프롬프트 (M5, §7.11) ─────────────────────────── */
+.mine-sp {
+  flex: 1;
+}
+.btn-mini {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--ink);
+  padding: 5px 11px;
+}
+.btn-mini:hover {
+  border-color: var(--soft);
+}
+
+.custom-card {
+  position: relative;
+  padding: 0;
+}
+.custom-card-main {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 18px 20px;
+  font-size: inherit;
+  color: inherit;
+  border-radius: 10px;
+}
+.card-menu-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: 0;
+  color: var(--soft);
+  font-size: 16px;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.card-menu-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+.menu-pop {
+  position: absolute;
+  top: 36px;
+  right: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  min-width: 110px;
+  z-index: 10;
+  overflow: hidden;
+}
+.menu-pop button {
+  background: none;
+  border: 0;
+  text-align: left;
+  font-size: 13px;
+  padding: 8px 14px;
+  color: var(--ink);
+}
+.menu-pop button:hover {
+  background: var(--bg);
+}
+.menu-pop button.danger {
+  color: #a03d28;
+}
+.mine-add-card {
+  border-style: dashed;
+  border-width: 1.5px;
+}
+.mine-note {
+  font-size: 12px;
+  color: var(--soft);
+}
+
+/* 등록·편집 화면 */
+.custom-edit .field {
+  margin-bottom: 16px;
+}
+.edit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.edit-actions {
+  display: flex;
+  gap: 6px;
+}
+.body-wrap {
+  position: relative;
+}
+.body-wrap textarea,
+.body-backdrop {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 9px 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  margin: 0;
+}
+.body-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  color: transparent;
+  overflow: auto;
+  pointer-events: none;
+}
+.body-wrap textarea {
+  position: relative;
+  background: transparent;
+  width: 100%;
+}
+.var-mark {
+  background: rgba(15, 118, 110, 0.14); /* 선택/인식 상태 표시 — 틸 계열 원칙 내 */
+  color: transparent;
+  border-radius: 3px;
+}
+.var-name-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.var-name-row input {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 11px;
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 12px;
+  padding: 3px 11px;
+}
+.chip-empty {
+  font-size: 12px;
+  color: var(--soft);
+}
+.edit-error {
+  font-size: 12.5px;
+  color: #a03d28;
+  margin: 0 0 12px;
+}
+
+/* 커스텀 결과 특칙 */
+.b-note {
+  font-size: 12px;
+  color: var(--soft);
+  margin: 14px 0 0;
+}
+.a-static-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--code-dim);
+  padding: 6px 2px 10px;
+}
+
+.btn-danger {
+  background: #a03d28;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+}
+.btn-danger:hover {
+  background: #8c3221;
 }
 
 /* ── 모달 ───────────────────────────────────────────── */

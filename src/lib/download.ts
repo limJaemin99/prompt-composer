@@ -40,11 +40,19 @@ export function buildSummaryHeader(typeName: string, d: Date): string {
 
 /** UTF-8(BOM 포함) 텍스트 파일로 다운로드 */
 export function downloadTextFile(filename: string, content: string): void {
-  const blob = new Blob([UTF8_BOM + content], { type: 'text/plain;charset=utf-8' });
+  downloadBlob(sanitizeFilename(filename), new Blob([UTF8_BOM + content], { type: 'text/plain;charset=utf-8' }));
+}
+
+/** JSON 파일 다운로드 — 파서 호환을 위해 BOM 없이 (내 프롬프트 백업용, §7.11) */
+export function downloadJsonFile(filename: string, content: string): void {
+  downloadBlob(sanitizeFilename(filename), new Blob([content], { type: 'application/json;charset=utf-8' }));
+}
+
+function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = sanitizeFilename(filename);
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
