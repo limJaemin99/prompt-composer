@@ -56,7 +56,12 @@ function specEntries(spec: PromptSpec, detail: DetailLevel) {
   const roleKey = spec.template.roleFromField;
   const values = valuesOf(spec);
   const rolePromoted = detail !== 'simple' && roleKey ? !!values[roleKey] : false;
-  return spec.entries.filter((e) => !(rolePromoted && e.field.key === roleKey));
+  return spec.entries.filter(
+    (e) =>
+      // checkbox 값('true')은 사용자 문장이 아니므로 spec 목록에서 제외 —
+      // buildRequirements 분기로만 반영된다 (M0 확정)
+      e.field.widget !== 'checkbox' && !(rolePromoted && e.field.key === roleKey),
+  );
 }
 
 interface RenderParts {
