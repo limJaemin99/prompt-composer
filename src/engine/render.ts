@@ -112,25 +112,56 @@ export function renderAI(spec: PromptSpec, flavor: Flavor, detail: DetailLevel):
   return blocks.join('\n\n');
 }
 
-/** 출력 B — 사람용 한국어 미러 (§5.4). UI 카드·스냅샷·다운로드가 공유하는 단일 직렬화. */
-export function renderHuman(spec: PromptSpec, detail: DetailLevel): string {
+/** 출력 B의 구조화 모델 — UI 카드와 텍스트 직렬화가 이 하나의 모델을 공유한다. */
+export interface HumanEntry {
+  label: string; // label.ko
+  value: string; // verbatim
+  fenced: boolean; // true면 UI 카드에서 시각적 코드 블록으로 표시 (§5.4 펜스 확정)
+}
+
+export interface HumanModel {
+  role: string | null; // ko, "역할: " 접두어 없이 (표준 이상 + role 존재 시에만 비null)
+  task: string; // task.ko
+  entries: HumanEntry[];
+  requirements: string[]; // ko 줄들
+  outputFormat: string | null;
+}
+
+/** spec → 출력 B 모델 (§5.4). UI 카드는 이 모델을 직접 렌더한다. */
+export function buildHumanModel(spec: PromptSpec, detail: DetailLevel): HumanModel {
   const { role, requirements, outputFormat } = computeParts(spec, detail);
-  const entries = specEntries(spec, detail);
+  return {
+    role: detail !== 'simple' && role ? role.ko : null,
+    task: spec.template.task.ko,
+    entries: specEntries(spec, detail).map((e) => ({
+      label: e.field.label.ko,
+      value: e.value,
+      fenced: isFenced(e.field, e.value),
+    })),
+    requirements: requirements.map((r) => r.ko),
+    outputFormat: outputFormat ? outputFormat.ko : null,
+  };
+}
+
+/**
+ * 출력 B — 사람용 한국어 미러의 텍스트 직렬화 (§5.4).
+ * 스냅샷 테스트·.txt 다운로드가 사용. 긴 값 펜스 포함(2026-07-09 확정).
+ */
+export function renderHuman(spec: PromptSpec, detail: DetailLevel): string {
+  const m = buildHumanModel(spec, detail);
   const blocks: string[] = [];
 
   const taskLines: string[] = ['[AI에게 시키는 일]'];
-  if (detail !== 'simple' && role) taskLines.push(`역할: ${role.ko}`);
-  taskLines.push(spec.template.task.ko);
+  if (m.role) taskLines.push(`역할: ${m.role}`);
+  taskLines.push(m.task);
   blocks.push(taskLines.join('\n'));
 
-  const entryLines = entries.map((e) =>
-    isFenced(e.field, e.value)
-      ? `- ${e.field.label.ko}:\n\`\`\`\n${e.value}\n\`\`\``
-      : `- ${e.field.label.ko}: ${e.value}`,
+  const entryLines = m.entries.map((e) =>
+    e.fenced ? `- ${e.label}:\n\`\`\`\n${e.value}\n\`\`\`` : `- ${e.label}: ${e.value}`,
   );
   blocks.push(`[전달한 내용]\n${entryLines.join('\n')}`);
-  blocks.push(`[지켜야 할 조건]\n${requirements.map((r) => `- ${r.ko}`).join('\n')}`);
-  if (outputFormat) blocks.push(`[결과물 형식]\n${outputFormat.ko}`);
+  blocks.push(`[지켜야 할 조건]\n${m.requirements.map((r) => `- ${r}`).join('\n')}`);
+  if (m.outputFormat) blocks.push(`[결과물 형식]\n${m.outputFormat}`);
 
   return blocks.join('\n\n');
 }
