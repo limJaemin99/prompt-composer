@@ -507,7 +507,65 @@ button.type-card:hover {
 .result-actions {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 12px;
+}
+
+/* C층 체크박스 (§8) */
+.refine-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  margin-top: 14px;
+  cursor: pointer;
+  width: fit-content;
+}
+.refine-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent); /* 선택 상태 표시 계열 */
+  cursor: pointer;
+}
+.refine-row.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.refine-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  color: var(--soft);
+  font-size: 11px;
+  cursor: help;
+}
+
+/* BYOK 정제 오버라이드 표시 바 (§9 v2) */
+.a-refined-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 16px;
+  font-size: 12px;
+  color: var(--code-tag);
+  background: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.btn-mini.dark {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--code-ink);
+}
+.btn-mini.dark:hover {
+  border-color: var(--code-tag);
+}
+.modal .field {
+  margin-bottom: 12px;
 }
 
 /* ── 내 프롬프트 (M5, §7.11) ─────────────────────────── */

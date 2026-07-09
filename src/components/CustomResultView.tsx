@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { CustomPrompt } from '../engine/custom';
 import { extractVariables, substituteVariables } from '../engine/custom';
+import { REFINE_NOTE_KO, REFINE_TOOLTIP, renderRefineWrapper } from '../engine/refine';
 import { copyText } from '../lib/clipboard';
 import {
   buildPromptFilename,
@@ -8,6 +9,7 @@ import {
   buildSummaryHeader,
   downloadTextFile,
 } from '../lib/download';
+import { loadLastFlavor } from '../lib/storage';
 
 interface Props {
   prompt: CustomPrompt;
@@ -24,8 +26,16 @@ interface Props {
  */
 export default function CustomResultView({ prompt, values, onBack, onToast }: Props) {
   const variables = useMemo(() => extractVariables(prompt.body), [prompt.body]);
-  const finalText = useMemo(() => substituteVariables(prompt.body, values), [prompt.body, values]);
+  const substituted = useMemo(() => substituteVariables(prompt.body, values), [prompt.body, values]);
+  const [refineChecked, setRefineChecked] = useState(false);
   const hasVariables = variables.length > 0;
+
+  // 체크 시 메타 지시문을 원문 앞에 덧댈 뿐, 사용자 원문은 한 글자도 바뀌지 않는다 (§8).
+  // 커스텀엔 플레이버 탭이 없으므로 래퍼 형식은 마지막 사용 플레이버, 폴백 Claude (§8 v2 확정).
+  const finalText = useMemo(
+    () => (refineChecked ? renderRefineWrapper(substituted, loadLastFlavor()) : substituted),
+    [refineChecked, substituted],
+  );
 
   const handleCopy = async () => {
     const r = await copyText(finalText);
@@ -47,6 +57,7 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
       ...(hasVariables ? variables.map((v) => `- ${v}: ${values[v] ?? ''}`) : ['- (변수 없음)']),
       '',
       '등록하신 프롬프트 원문에 위 값이 채워졌습니다',
+      ...(refineChecked ? ['', '[AI 정제]', REFINE_NOTE_KO] : []),
     ].join('\n');
     downloadTextFile(
       buildSummaryFilename(prompt.name, now),
@@ -94,6 +105,12 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
         </div>
 
         <p className="b-note">등록하신 프롬프트 원문에 위 값이 채워졌습니다</p>
+        {refineChecked && (
+          <div className="b-sec">
+            <div className="b-label">AI 정제</div>
+            <div className="b-text">{REFINE_NOTE_KO}</div>
+          </div>
+        )}
       </section>
 
       {/* 출력 A — 치환 완성본. 탭·토글 없음 (골격 무변형 철칙) */}
@@ -111,6 +128,18 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
         </div>
         <pre className="a-pre">{finalText}</pre>
       </section>
+
+      <label className="refine-row" title={REFINE_TOOLTIP}>
+        <input
+          type="checkbox"
+          checked={refineChecked}
+          onChange={(e) => setRefineChecked(e.target.checked)}
+        />
+        <span>AI가 스스로 다듬어 실행하도록 하기 (고급)</span>
+        <span className="refine-help" aria-label={REFINE_TOOLTIP}>
+          ?
+        </span>
+      </label>
 
       <div className="result-actions">
         <button className="btn-primary" onClick={handleCopy}>

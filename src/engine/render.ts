@@ -130,10 +130,23 @@ export interface HumanModel {
   entries: HumanEntry[];
   requirements: string[]; // ko 줄들
   outputFormat: string | null;
+  /** C층 체크 시 "[AI 정제]" 안내 (§5.4 v2) — A/B 패리티 계산에서 제외되는 부가 표시 */
+  refineNote: string | null;
 }
 
+export interface HumanOptions {
+  /** "AI가 스스로 다듬어 실행" 체크 상태 (§8) */
+  refine?: boolean;
+}
+
+import { REFINE_NOTE_KO } from './refine'; // 문구 단일 출처 — 내장·커스텀 화면 드리프트 방지
+
 /** spec → 출력 B 모델 (§5.4). UI 카드는 이 모델을 직접 렌더한다. */
-export function buildHumanModel(spec: PromptSpec, detail: DetailLevel): HumanModel {
+export function buildHumanModel(
+  spec: PromptSpec,
+  detail: DetailLevel,
+  opts?: HumanOptions,
+): HumanModel {
   const { role, requirements, outputFormat } = computeParts(spec, detail);
   return {
     role: detail !== 'simple' && role ? role.ko : null,
@@ -145,6 +158,7 @@ export function buildHumanModel(spec: PromptSpec, detail: DetailLevel): HumanMod
     })),
     requirements: requirements.map((r) => r.ko),
     outputFormat: outputFormat ? outputFormat.ko : null,
+    refineNote: opts?.refine ? REFINE_NOTE_KO : null,
   };
 }
 
@@ -152,8 +166,8 @@ export function buildHumanModel(spec: PromptSpec, detail: DetailLevel): HumanMod
  * 출력 B — 사람용 한국어 미러의 텍스트 직렬화 (§5.4).
  * 스냅샷 테스트·.txt 다운로드가 사용. 긴 값 펜스 포함(2026-07-09 확정).
  */
-export function renderHuman(spec: PromptSpec, detail: DetailLevel): string {
-  const m = buildHumanModel(spec, detail);
+export function renderHuman(spec: PromptSpec, detail: DetailLevel, opts?: HumanOptions): string {
+  const m = buildHumanModel(spec, detail, opts);
   const blocks: string[] = [];
 
   const taskLines: string[] = ['[AI에게 시키는 일]'];
@@ -167,6 +181,7 @@ export function renderHuman(spec: PromptSpec, detail: DetailLevel): string {
   blocks.push(`[전달한 내용]\n${entryLines.join('\n')}`);
   blocks.push(`[지켜야 할 조건]\n${m.requirements.map((r) => `- ${r}`).join('\n')}`);
   if (m.outputFormat) blocks.push(`[결과물 형식]\n${m.outputFormat}`);
+  if (m.refineNote) blocks.push(`[AI 정제]\n${m.refineNote}`);
 
   return blocks.join('\n\n');
 }
