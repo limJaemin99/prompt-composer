@@ -7,7 +7,12 @@
  * 블록 사이는 빈 줄 1개('\n\n' join), 끝에 트레일링 뉴라인 없음 — §7.10 골든 기준.
  */
 import type { BiText, DetailLevel, FieldDef, Flavor, PromptSpec, TaskTemplate } from './types';
-import { REFINE_NOTE_KO } from './refine'; // 문구 단일 출처 — 내장·커스텀 화면 드리프트 방지
+import {
+  INTERVIEW_LABEL_KO,
+  INTERVIEW_NOTE_KO,
+  REFINE_LABEL_KO,
+  REFINE_NOTE_KO,
+} from './refine'; // 문구·라벨 단일 출처 — UI 카드/직렬화 드리프트 방지
 
 /** 폼 값 → PromptSpec. entries는 fields 선언 순서, 값이 비어있지 않은 필드만. */
 export function buildSpec(
@@ -133,11 +138,15 @@ export interface HumanModel {
   outputFormat: string | null;
   /** C층 체크 시 "[AI가 먼저 다듬음]" 안내 (§5.4 v2) — A/B 패리티 계산에서 제외되는 부가 표시 */
   refineNote: string | null;
+  /** 인터뷰 체크 시 "[AI가 먼저 질문함]" 안내 (v2 §4-3) — 마찬가지로 패리티 제외. refine과 상호 배타 */
+  interviewNote: string | null;
 }
 
 export interface HumanOptions {
   /** "붙여넣는 곳의 AI가 먼저 다듬고 답하게 하기" 체크 상태 (§8) */
   refine?: boolean;
+  /** "붙여넣는 곳의 AI가 먼저 질문한 뒤 답하게 하기" 체크 상태 (v2 §4). refine과 동시 참 불가 */
+  interview?: boolean;
 }
 
 /** spec → 출력 B 모델 (§5.4). UI 카드는 이 모델을 직접 렌더한다. */
@@ -158,6 +167,7 @@ export function buildHumanModel(
     requirements: requirements.map((r) => r.ko),
     outputFormat: outputFormat ? outputFormat.ko : null,
     refineNote: opts?.refine ? REFINE_NOTE_KO : null,
+    interviewNote: opts?.interview ? INTERVIEW_NOTE_KO : null,
   };
 }
 
@@ -180,7 +190,8 @@ export function renderHuman(spec: PromptSpec, detail: DetailLevel, opts?: HumanO
   blocks.push(`[전달한 내용]\n${entryLines.join('\n')}`);
   blocks.push(`[지켜야 할 조건]\n${m.requirements.map((r) => `- ${r}`).join('\n')}`);
   if (m.outputFormat) blocks.push(`[결과물 형식]\n${m.outputFormat}`);
-  if (m.refineNote) blocks.push(`[AI가 먼저 다듬음]\n${m.refineNote}`);
+  if (m.refineNote) blocks.push(`[${REFINE_LABEL_KO}]\n${m.refineNote}`);
+  if (m.interviewNote) blocks.push(`[${INTERVIEW_LABEL_KO}]\n${m.interviewNote}`);
 
   return blocks.join('\n\n');
 }

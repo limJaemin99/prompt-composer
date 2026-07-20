@@ -510,6 +510,17 @@ button.type-card:hover {
   margin-top: 12px;
 }
 
+/* C층 메타 옵션 — 두 체크박스(먼저 다듬기 / 먼저 질문하기) */
+.meta-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.meta-options .refine-row {
+  margin-top: 0;
+}
+
 /* C층 체크박스 (§8) */
 .refine-row {
   display: flex;

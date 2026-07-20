@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react';
 import type { CustomPrompt } from '../engine/custom';
 import { extractVariables, substituteVariables } from '../engine/custom';
 import {
-  REFINE_CHECKBOX_LABEL,
+  INTERVIEW_LABEL_KO,
+  INTERVIEW_NOTE_KO,
   REFINE_LABEL_KO,
   REFINE_NOTE_KO,
-  REFINE_TOOLTIP,
+  renderInterviewWrapper,
   renderRefineWrapper,
 } from '../engine/refine';
+import MetaOptions from './MetaOptions';
 import { copyText } from '../lib/clipboard';
 import {
   buildPromptFilename,
@@ -29,19 +31,22 @@ interface Props {
  * 커스텀 결과 화면 특칙 (§7.11):
  * 플레이버 탭·상세도 토글 없음. 출력 A = 원문에 변수값만 치환한 완성본.
  * 출력 B = 프롬프트 이름 + 채운 값 목록 + 안내 1줄.
+ * C층 메타 옵션(먼저 다듬기/먼저 질문하기)은 원문 앞에 덧대기만 — 골격 무변형(§8·§4).
+ * 커스텀엔 플레이버 탭이 없으므로 래퍼 형식은 마지막 사용 플레이버, 폴백 Claude.
  */
 export default function CustomResultView({ prompt, values, onBack, onToast }: Props) {
   const variables = useMemo(() => extractVariables(prompt.body), [prompt.body]);
   const substituted = useMemo(() => substituteVariables(prompt.body, values), [prompt.body, values]);
   const [refineChecked, setRefineChecked] = useState(false);
+  const [interviewChecked, setInterviewChecked] = useState(false);
   const hasVariables = variables.length > 0;
 
-  // 체크 시 메타 지시문을 원문 앞에 덧댈 뿐, 사용자 원문은 한 글자도 바뀌지 않는다 (§8).
-  // 커스텀엔 플레이버 탭이 없으므로 래퍼 형식은 마지막 사용 플레이버, 폴백 Claude (§8 v2 확정).
-  const finalText = useMemo(
-    () => (refineChecked ? renderRefineWrapper(substituted, loadLastFlavor()) : substituted),
-    [refineChecked, substituted],
-  );
+  const finalText = useMemo(() => {
+    const fl = loadLastFlavor();
+    if (refineChecked) return renderRefineWrapper(substituted, fl);
+    if (interviewChecked) return renderInterviewWrapper(substituted, fl);
+    return substituted;
+  }, [refineChecked, interviewChecked, substituted]);
 
   const handleCopy = async () => {
     const r = await copyText(finalText);
@@ -64,6 +69,7 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
       '',
       '등록하신 프롬프트 원문에 위 값이 채워졌습니다',
       ...(refineChecked ? ['', `[${REFINE_LABEL_KO}]`, REFINE_NOTE_KO] : []),
+      ...(interviewChecked ? ['', `[${INTERVIEW_LABEL_KO}]`, INTERVIEW_NOTE_KO] : []),
     ].join('\n');
     downloadTextFile(
       buildSummaryFilename(prompt.name, now),
@@ -111,10 +117,17 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
         </div>
 
         <p className="b-note">등록하신 프롬프트 원문에 위 값이 채워졌습니다</p>
+
         {refineChecked && (
           <div className="b-sec">
             <div className="b-label">{REFINE_LABEL_KO}</div>
             <div className="b-text">{REFINE_NOTE_KO}</div>
+          </div>
+        )}
+        {interviewChecked && (
+          <div className="b-sec">
+            <div className="b-label">{INTERVIEW_LABEL_KO}</div>
+            <div className="b-text">{INTERVIEW_NOTE_KO}</div>
           </div>
         )}
       </section>
@@ -135,17 +148,13 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
         <pre className="a-pre">{finalText}</pre>
       </section>
 
-      <label className="refine-row" title={REFINE_TOOLTIP}>
-        <input
-          type="checkbox"
-          checked={refineChecked}
-          onChange={(e) => setRefineChecked(e.target.checked)}
-        />
-        <span>{REFINE_CHECKBOX_LABEL}</span>
-        <span className="refine-help" aria-label={REFINE_TOOLTIP}>
-          ?
-        </span>
-      </label>
+      {/* C층 메타 옵션 — 상호 배타. 커스텀엔 BYOK 정제 오버라이드가 없어 forceDisabled 불필요 */}
+      <MetaOptions
+        refine={refineChecked}
+        interview={interviewChecked}
+        onRefineChange={setRefineChecked}
+        onInterviewChange={setInterviewChecked}
+      />
 
       <div className="result-actions">
         <button className="btn-primary" onClick={handleCopy}>
