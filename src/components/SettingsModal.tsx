@@ -71,7 +71,7 @@ export default function SettingsModal({ open, onClose, onToast }: Props) {
           설정 — 내 API 키로 다듬기 (고급)
         </h2>
         <p className="modal-body">
-          AI 회사에서 발급받은 내 API 키를 넣으면, 결과 화면에 [AI 정제 (고급)] 버튼이 생겨요.
+          AI 회사에서 발급받은 내 API 키를 넣으면, 결과 화면에 [프롬프트 지금 다듬기] 버튼이 생겨요.
           <br />
           키는 이 PC의 브라우저에만 저장되며, 해당 AI사 API 호출 외에는 어디로도 전송되지
           않습니다.

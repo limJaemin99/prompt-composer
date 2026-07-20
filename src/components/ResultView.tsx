@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { DetailLevel, Flavor, TaskTemplate } from '../engine/types';
 import { buildHumanModel, buildSpec, renderAI, renderHuman } from '../engine/render';
-import { REFINE_TOOLTIP, renderRefineWrapper } from '../engine/refine';
+import {
+  REFINE_CHECKBOX_LABEL,
+  REFINE_LABEL_KO,
+  REFINE_TOOLTIP,
+  renderRefineWrapper,
+} from '../engine/refine';
 import { copyText } from '../lib/clipboard';
 import {
   buildPromptFilename,
@@ -56,7 +61,7 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
   const overrideActive = refined !== null && refined.flavor === flavor && refined.detail === detail;
   const displayText = overrideActive ? refined.text : wrappedText;
 
-  // B는 화면의 A를 정확히 설명해야 한다 — 오버라이드 표시 중엔 래퍼가 없으므로 [AI 정제] 줄도 제외
+  // B는 화면의 A를 정확히 설명해야 한다 — 오버라이드 표시 중엔 래퍼가 없으므로 [AI가 먼저 다듬음] 줄도 제외
   const refineShown = refineChecked && !overrideActive;
   const human = useMemo(
     () => buildHumanModel(spec, detail, { refine: refineShown }),
@@ -89,9 +94,9 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
     if (r.ok && r.text) {
       setRefined({ flavor, detail, text: r.text });
       setRefineChecked(false); // 이미 다듬어졌으므로 체크 의미 소멸 — B 표시와 화면 일치
-      onToast('AI가 프롬프트를 다듬었어요. [되돌리기]로 원본을 볼 수 있어요.', true);
+      onToast('프롬프트를 다듬었어요. [되돌리기]로 원본을 볼 수 있어요.', true);
     } else {
-      onToast(r.error ?? '정제에 실패했어요. 잠시 후 다시 시도해 주세요.', false);
+      onToast(r.error ?? '프롬프트를 다듬지 못했어요. 잠시 후 다시 시도해 주세요.', false);
     }
   };
 
@@ -171,7 +176,7 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
 
         {human.refineNote && (
           <div className="b-sec">
-            <div className="b-label">AI 정제</div>
+            <div className="b-label">{REFINE_LABEL_KO}</div>
             <div className="b-text">{human.refineNote}</div>
           </div>
         )}
@@ -212,8 +217,8 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
           </button>
         </div>
         {overrideActive && (
-          <div className="a-refined-bar">
-            <span>AI가 다듬은 프롬프트예요</span>
+          <div className="a-refined-bar" role="status">
+            <span className="refined-badge">✨ 내 API 키로 다듬은 프롬프트</span>
             <button className="btn-mini dark" onClick={() => setRefined(null)}>
               되돌리기
             </button>
@@ -230,7 +235,7 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
           disabled={overrideActive}
           onChange={(e) => setRefineChecked(e.target.checked)}
         />
-        <span>AI가 스스로 다듬어 실행하도록 하기 (고급)</span>
+        <span>{REFINE_CHECKBOX_LABEL}</span>
         <span className="refine-help" aria-label={REFINE_TOOLTIP}>
           ?
         </span>
@@ -245,7 +250,7 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
         </button>
         {provider && !overrideActive && (
           <button className="btn-ghost" onClick={handleRefine} disabled={refining}>
-            {refining ? '다듬는 중…' : 'AI 정제 (고급)'}
+            {refining ? '다듬는 중…' : '프롬프트 지금 다듬기 (내 API 키)'}
           </button>
         )}
       </div>

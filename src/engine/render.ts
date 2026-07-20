@@ -7,6 +7,7 @@
  * 블록 사이는 빈 줄 1개('\n\n' join), 끝에 트레일링 뉴라인 없음 — §7.10 골든 기준.
  */
 import type { BiText, DetailLevel, FieldDef, Flavor, PromptSpec, TaskTemplate } from './types';
+import { REFINE_NOTE_KO } from './refine'; // 문구 단일 출처 — 내장·커스텀 화면 드리프트 방지
 
 /** 폼 값 → PromptSpec. entries는 fields 선언 순서, 값이 비어있지 않은 필드만. */
 export function buildSpec(
@@ -130,16 +131,14 @@ export interface HumanModel {
   entries: HumanEntry[];
   requirements: string[]; // ko 줄들
   outputFormat: string | null;
-  /** C층 체크 시 "[AI 정제]" 안내 (§5.4 v2) — A/B 패리티 계산에서 제외되는 부가 표시 */
+  /** C층 체크 시 "[AI가 먼저 다듬음]" 안내 (§5.4 v2) — A/B 패리티 계산에서 제외되는 부가 표시 */
   refineNote: string | null;
 }
 
 export interface HumanOptions {
-  /** "AI가 스스로 다듬어 실행" 체크 상태 (§8) */
+  /** "붙여넣는 곳의 AI가 먼저 다듬고 답하게 하기" 체크 상태 (§8) */
   refine?: boolean;
 }
-
-import { REFINE_NOTE_KO } from './refine'; // 문구 단일 출처 — 내장·커스텀 화면 드리프트 방지
 
 /** spec → 출력 B 모델 (§5.4). UI 카드는 이 모델을 직접 렌더한다. */
 export function buildHumanModel(
@@ -181,7 +180,7 @@ export function renderHuman(spec: PromptSpec, detail: DetailLevel, opts?: HumanO
   blocks.push(`[전달한 내용]\n${entryLines.join('\n')}`);
   blocks.push(`[지켜야 할 조건]\n${m.requirements.map((r) => `- ${r}`).join('\n')}`);
   if (m.outputFormat) blocks.push(`[결과물 형식]\n${m.outputFormat}`);
-  if (m.refineNote) blocks.push(`[AI 정제]\n${m.refineNote}`);
+  if (m.refineNote) blocks.push(`[AI가 먼저 다듬음]\n${m.refineNote}`);
 
   return blocks.join('\n\n');
 }

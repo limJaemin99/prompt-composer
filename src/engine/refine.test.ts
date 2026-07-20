@@ -2,7 +2,7 @@
  * refine(C층 체크박스) 골든 (§10.2 v2)
  * ① claude → <meta_instruction> 시작 / gpt·gemini → ## Meta instruction 시작
  * ② 메타 지시문 아래에 원래 출력 A 전문이 그대로 존재 (체크 해제 시 출력과 부분일치)
- * ③ 출력 B에 [AI 정제] 줄 존재/부재
+ * ③ 출력 B에 [AI가 먼저 다듬음] 줄 존재/부재
  * ④ 체크 토글이 A/B 패리티(§10.1-2) 계산을 깨지 않음
  */
 import { describe, it, expect } from 'vitest';
@@ -45,12 +45,14 @@ describe('refine 골든 — 래퍼 형식 (§8)', () => {
   });
 });
 
-describe('refine 골든 — 출력 B [AI 정제] 줄 (§5.4 v2)', () => {
-  it('체크 시 [AI 정제] 블록 존재, 해제 시 부재', () => {
+describe('refine 골든 — 출력 B [AI가 먼저 다듬음] 줄 (§5.4 v2)', () => {
+  it('체크 시 [AI가 먼저 다듬음] 블록 존재, 해제 시 부재 (2026-07-09 명칭 개편)', () => {
     const on = renderHuman(spec, 'standard', { refine: true });
     const off = renderHuman(spec, 'standard');
-    expect(on).toContain('[AI 정제]\nAI가 이 요청을 스스로 더 정교하게 다듬은 뒤 실행합니다.');
-    expect(off).not.toContain('[AI 정제]');
+    expect(on).toContain(
+      '[AI가 먼저 다듬음]\n붙여넣는 곳의 AI가 이 요청을 먼저 스스로 다듬은 뒤 답합니다.',
+    );
+    expect(off).not.toContain('[AI가 먼저 다듬음]');
   });
 
   it('④ 체크 토글이 A/B 패리티를 깨지 않는다 — 요구사항 줄 수 불변', () => {
@@ -61,7 +63,7 @@ describe('refine 골든 — 출력 B [AI 정제] 줄 (§5.4 v2)', () => {
     };
     const off = renderHuman(spec, 'standard');
     const on = renderHuman(spec, 'standard', { refine: true });
-    expect(reqCount(on)).toBe(reqCount(off)); // [AI 정제]는 패리티 계산 제외 (§5.4)
+    expect(reqCount(on)).toBe(reqCount(off)); // [AI가 먼저 다듬음]은 패리티 계산 제외 (§5.4)
     // A 쪽: 래퍼는 requirements 블록을 건드리지 않는다
     const a = renderAI(spec, 'claude', 'standard');
     const wrapped = renderRefineWrapper(a, 'claude');

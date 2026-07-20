@@ -47,10 +47,14 @@ export function saveApiKey(provider: Provider, key: string): void {
   }
 }
 
-/** 저장된 키가 있는 첫 제공사 — Anthropic 우선 */
+/**
+ * 저장된 키가 있는 첫 제공사 — Google 우선 (2026-07-09 확정).
+ * Google은 무료 티어, Anthropic은 선결제 유료 — 둘 다 저장돼 있으면 무료가 기본값.
+ * 실패 시 자동 폴백은 하지 않는다(동의 없는 비용 발생 방지).
+ */
 export function activeProvider(): Provider | null {
-  if (loadApiKey('anthropic')) return 'anthropic';
   if (loadApiKey('google')) return 'google';
+  if (loadApiKey('anthropic')) return 'anthropic';
   return null;
 }
 
