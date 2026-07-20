@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import type { DetailLevel, Flavor, TaskTemplate } from '../engine/types';
 import { buildHumanModel, buildSpec, renderAI, renderHuman } from '../engine/render';
 import {
-  REFINE_CHECKBOX_LABEL,
+  INTERVIEW_LABEL_KO,
   REFINE_LABEL_KO,
-  REFINE_TOOLTIP,
+  renderInterviewWrapper,
   renderRefineWrapper,
 } from '../engine/refine';
+import MetaOptions from './MetaOptions';
 import { copyText } from '../lib/clipboard';
 import {
   buildPromptFilename,
@@ -48,24 +49,28 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
   const [flavor, setFlavor] = useState<Flavor>(() => template.defaultFlavor ?? loadLastFlavor());
   const [detail, setDetail] = useState<DetailLevel>(initialDetail);
   const [refineChecked, setRefineChecked] = useState(false);
+  const [interviewChecked, setInterviewChecked] = useState(false); // 기능 A (v2 §4). refine과 상호 배타
   const [refined, setRefined] = useState<RefinedOverride | null>(null);
   const [refining, setRefining] = useState(false);
 
   const spec = useMemo(() => buildSpec(template, values, detail), [template, values, detail]);
   const pureText = useMemo(() => renderAI(spec, flavor, detail), [spec, flavor, detail]);
-  const wrappedText = useMemo(
-    () => (refineChecked ? renderRefineWrapper(pureText, flavor) : pureText),
-    [refineChecked, pureText, flavor],
-  );
+  // 체크된 옵션(상호 배타이므로 최대 하나)에 따라 래퍼를 덧댐
+  const wrappedText = useMemo(() => {
+    if (refineChecked) return renderRefineWrapper(pureText, flavor);
+    if (interviewChecked) return renderInterviewWrapper(pureText, flavor);
+    return pureText;
+  }, [refineChecked, interviewChecked, pureText, flavor]);
   // 정제 오버라이드는 만들어진 (플레이버, 상세도) 조합에서만 표시 — 다른 조합은 순수 렌더 (§9 v2)
   const overrideActive = refined !== null && refined.flavor === flavor && refined.detail === detail;
   const displayText = overrideActive ? refined.text : wrappedText;
 
-  // B는 화면의 A를 정확히 설명해야 한다 — 오버라이드 표시 중엔 래퍼가 없으므로 [AI가 먼저 다듬음] 줄도 제외
+  // B는 화면의 A를 정확히 설명해야 한다 — 오버라이드 표시 중엔 래퍼가 없으므로 안내 줄도 제외
   const refineShown = refineChecked && !overrideActive;
+  const interviewShown = interviewChecked && !overrideActive;
   const human = useMemo(
-    () => buildHumanModel(spec, detail, { refine: refineShown }),
-    [spec, detail, refineShown],
+    () => buildHumanModel(spec, detail, { refine: refineShown, interview: interviewShown }),
+    [spec, detail, refineShown, interviewShown],
   );
 
   const provider = activeProvider();
@@ -93,7 +98,9 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
     setRefining(false);
     if (r.ok && r.text) {
       setRefined({ flavor, detail, text: r.text });
-      setRefineChecked(false); // 이미 다듬어졌으므로 체크 의미 소멸 — B 표시와 화면 일치
+      // 다듬어진 결과는 래퍼 없이 그 자체로 성립 — 두 체크박스 모두 해제해 화면과 B를 일치시킴
+      setRefineChecked(false);
+      setInterviewChecked(false);
       onToast('프롬프트를 다듬었어요. [되돌리기]로 원본을 볼 수 있어요.', true);
     } else {
       onToast(r.error ?? '프롬프트를 다듬지 못했어요. 잠시 후 다시 시도해 주세요.', false);
@@ -106,7 +113,8 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
   };
   const downloadB = () => {
     const now = new Date();
-    const body = renderHuman(spec, detail, { refine: refineShown });
+    // 화면 B 카드와 동일하게 직렬화 — 인터뷰 플래그 포함(누락 시 파일에 [AI가 먼저 질문함] 줄이 빠짐)
+    const body = renderHuman(spec, detail, { refine: refineShown, interview: interviewShown });
     downloadTextFile(
       buildSummaryFilename(template.name, now),
       `${buildSummaryHeader(template.name, now)}\n\n${body}`,
@@ -180,6 +188,13 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
             <div className="b-text">{human.refineNote}</div>
           </div>
         )}
+
+        {human.interviewNote && (
+          <div className="b-sec">
+            <div className="b-label">{INTERVIEW_LABEL_KO}</div>
+            <div className="b-text">{human.interviewNote}</div>
+          </div>
+        )}
       </section>
 
       {/* 출력 A — AI용 코드박스 */}
@@ -227,19 +242,15 @@ export default function ResultView({ template, values, initialDetail, onEdit, on
         <pre className="a-pre">{highlight(displayText, flavor)}</pre>
       </section>
 
-      {/* C층 체크박스 (§8) — 정제 오버라이드 활성 중엔 비활성(이중 다듬기 방지) */}
-      <label className={overrideActive ? 'refine-row disabled' : 'refine-row'} title={REFINE_TOOLTIP}>
-        <input
-          type="checkbox"
-          checked={refineChecked}
-          disabled={overrideActive}
-          onChange={(e) => setRefineChecked(e.target.checked)}
-        />
-        <span>{REFINE_CHECKBOX_LABEL}</span>
-        <span className="refine-help" aria-label={REFINE_TOOLTIP}>
-          ?
-        </span>
-      </label>
+      {/* C층 메타 옵션 (§8 먼저 다듬기 / §4 먼저 질문하기) — 상호 배타.
+          정제 오버라이드 활성 중엔 둘 다 비활성(이중 다듬기 방지, M6 규칙 확장 — Q2 승인) */}
+      <MetaOptions
+        refine={refineChecked}
+        interview={interviewChecked}
+        onRefineChange={setRefineChecked}
+        onInterviewChange={setInterviewChecked}
+        forceDisabled={overrideActive}
+      />
 
       <div className="result-actions">
         <button className="btn-primary" onClick={handleCopy}>
