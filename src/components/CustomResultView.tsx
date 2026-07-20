@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { CustomPrompt } from '../engine/custom';
 import { extractVariables, substituteVariables } from '../engine/custom';
-import { REFINE_NOTE_KO, REFINE_TOOLTIP, renderRefineWrapper } from '../engine/refine';
+import {
+  REFINE_CHECKBOX_LABEL,
+  REFINE_LABEL_KO,
+  REFINE_NOTE_KO,
+  REFINE_TOOLTIP,
+  renderRefineWrapper,
+} from '../engine/refine';
 import { copyText } from '../lib/clipboard';
 import {
   buildPromptFilename,
@@ -57,7 +63,7 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
       ...(hasVariables ? variables.map((v) => `- ${v}: ${values[v] ?? ''}`) : ['- (변수 없음)']),
       '',
       '등록하신 프롬프트 원문에 위 값이 채워졌습니다',
-      ...(refineChecked ? ['', '[AI 정제]', REFINE_NOTE_KO] : []),
+      ...(refineChecked ? ['', `[${REFINE_LABEL_KO}]`, REFINE_NOTE_KO] : []),
     ].join('\n');
     downloadTextFile(
       buildSummaryFilename(prompt.name, now),
@@ -107,7 +113,7 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
         <p className="b-note">등록하신 프롬프트 원문에 위 값이 채워졌습니다</p>
         {refineChecked && (
           <div className="b-sec">
-            <div className="b-label">AI 정제</div>
+            <div className="b-label">{REFINE_LABEL_KO}</div>
             <div className="b-text">{REFINE_NOTE_KO}</div>
           </div>
         )}
@@ -135,7 +141,7 @@ export default function CustomResultView({ prompt, values, onBack, onToast }: Pr
           checked={refineChecked}
           onChange={(e) => setRefineChecked(e.target.checked)}
         />
-        <span>AI가 스스로 다듬어 실행하도록 하기 (고급)</span>
+        <span>{REFINE_CHECKBOX_LABEL}</span>
         <span className="refine-help" aria-label={REFINE_TOOLTIP}>
           ?
         </span>

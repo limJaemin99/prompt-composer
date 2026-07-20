@@ -543,18 +543,24 @@ button.type-card:hover {
   cursor: help;
 }
 
-/* BYOK 정제 오버라이드 표시 바 (§9 v2) */
+/* BYOK 정제 오버라이드 표시 바 (§9 v2) — 비용이 든 변경이므로 상시·고시인성 배지 */
 .a-refined-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 16px;
-  font-size: 12px;
-  color: var(--code-tag);
-  background: rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 8px 16px;
+  background: rgba(130, 184, 175, 0.14);
+  border-top: 1px solid rgba(130, 184, 175, 0.3);
+  border-bottom: 1px solid rgba(130, 184, 175, 0.3);
+}
+.refined-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #a8d8d0; /* 다크 배경 위 고대비 밝은 틸 */
 }
 .btn-mini.dark {
   background: transparent;
